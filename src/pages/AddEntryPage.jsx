@@ -9,7 +9,6 @@ import React, { useState, useEffect, useRef } from 'react';
     import { Badge } from '@/components/ui/badge';
     import { X, Mic, Save, Tag, LogIn, Square, Play } from 'lucide-react';
     import { supabase } from '@/lib/supabaseClient';
-    import AuthNeeded from '@/components/dashboard/AuthNeeded';
 
     const AddEntryPage = () => {
       const [content, setContent] = useState('');
