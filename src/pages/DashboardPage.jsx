@@ -116,14 +116,21 @@ import React, { useState, useEffect } from 'react';
         }
       };
 
-      const AiSuggestion = ({ entries }) => {
+      const AiSuggestion = ({ entries = [], onRevisit }) => {
   const keyword = "project ideas";
-  const mentionCount = entries.reduce((count, entry) => {
+  const now = new Date();
+  const thisMonthEntries = entries.filter(entry => {
+    const entryDate = new Date(entry.date);
+    return (
+      entryDate.getMonth() === now.getMonth() &&
+      entryDate.getFullYear() === now.getFullYear()
+    );
+  });
+  const mentionCount = thisMonthEntries.reduce((count, entry) => {
     const content = entry.content.toLowerCase();
     return count + (content.includes(keyword) ? 1 : 0);
   }, 0);
 
-  // If there are no relevant mentions, hide the component
   if (mentionCount === 0) return null;
 
   return (
@@ -142,7 +149,12 @@ import React, { useState, useEffect } from 'react';
           </p>
         </div>
       </div>
-      <Button variant="outline" size="sm" className="mt-3 border-primary text-primary hover:bg-primary/10">
+      <Button
+        variant="outline"
+        size="sm"
+        className="mt-3 border-primary text-primary hover:bg-primary/10"
+        onClick={onRevisit}
+      >
         Revisit Ideas
       </Button>
     </motion.div>
