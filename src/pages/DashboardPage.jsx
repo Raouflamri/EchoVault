@@ -153,8 +153,6 @@ import React, { useState, useEffect } from 'react';
             Memory Stream
           </motion.h1>
 
-          <AiSuggestion />
-
           <div className="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0">
             <div className="relative w-full sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
