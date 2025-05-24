@@ -116,33 +116,15 @@ import React, { useState, useEffect } from 'react';
         }
       };
 
-      const AiSuggestion = () => {
-  const currentMonth = new Date().getMonth();
-  const keywordCounts = {};
+      const AiSuggestion = ({ entries }) => {
+  const keyword = "project ideas";
+  const mentionCount = entries.reduce((count, entry) => {
+    const content = entry.content.toLowerCase();
+    return count + (content.includes(keyword) ? 1 : 0);
+  }, 0);
 
-  entries.forEach(entry => {
-    const entryDate = new Date(entry.date);
-    if (entryDate.getMonth() === currentMonth) {
-      const words = entry.content
-        .toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .split(/\s+/);
-
-      words.forEach(word => {
-        if (word.length > 3) {
-          keywordCounts[word] = (keywordCounts[word] || 0) + 1;
-        }
-      });
-    }
-  });
-
-  const sortedKeywords = Object.entries(keywordCounts)
-    .sort((a, b) => b[1] - a[1])
-    .filter(([_, count]) => count > 1);
-
-  const topKeyword = sortedKeywords.length > 0 ? sortedKeywords[0] : null;
-
-  if (!topKeyword) return null; // Show nothing if no insight
+  // If there are no relevant mentions, hide the component
+  if (mentionCount === 0) return null;
 
   return (
     <motion.div 
@@ -156,12 +138,12 @@ import React, { useState, useEffect } from 'react';
         <div>
           <h3 className="text-lg font-semibold text-primary glowing-text">AI Insight</h3>
           <p className="text-sm text-slate-300">
-            You mentioned "<strong>{topKeyword[0]}</strong>" {topKeyword[1]} times this month. Want to explore it?
+            You mentioned <strong>{`"${keyword}"`}</strong> {mentionCount} {mentionCount === 1 ? 'time' : 'times'} this month. Want to explore them?
           </p>
         </div>
       </div>
       <Button variant="outline" size="sm" className="mt-3 border-primary text-primary hover:bg-primary/10">
-        Revisit "{topKeyword[0]}"
+        Revisit Ideas
       </Button>
     </motion.div>
   );
