@@ -1,45 +1,63 @@
-
-    import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
     const ThemeProviderContext = createContext({
       theme: 'system',
       setTheme: () => null,
+      isNightMode: false,
+      setIsNightMode: () => null,
     });
 
     export function ThemeProvider({
       children,
       defaultTheme = 'system',
-      storageKey = 'vite-ui-theme',
+      storageKey = 'echovault-theme',
+      nightModeStorageKey = 'echovault-night-mode',
       ...props
     }) {
-      const [theme, setTheme] = useState(
+      const [theme, setThemeState] = useState(
         () => localStorage.getItem(storageKey) || defaultTheme
+      );
+      const [isNightMode, setIsNightModeState] = useState(
+        () => JSON.parse(localStorage.getItem(nightModeStorageKey)) || false
       );
 
       useEffect(() => {
         const root = window.document.documentElement;
 
-        root.classList.remove('light', 'dark');
+        root.classList.remove('light', 'dark', 'night');
+
+        let currentTheme = theme;
 
         if (theme === 'system') {
-          const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-            .matches
+          currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
             ? 'dark'
             : 'light';
-
-          root.classList.add(systemTheme);
-          return;
+        }
+        
+        if (isNightMode && currentTheme === 'dark') {
+           root.classList.add('night');
+        } else {
+           root.classList.add(currentTheme);
         }
 
-        root.classList.add(theme);
-      }, [theme]);
+      }, [theme, isNightMode]);
+
+      const setTheme = (newTheme) => {
+        localStorage.setItem(storageKey, newTheme);
+        setThemeState(newTheme);
+      };
+
+      const setIsNightMode = (enabled) => {
+        localStorage.setItem(nightModeStorageKey, JSON.stringify(enabled));
+        setIsNightModeState(enabled);
+      };
+
 
       const value = {
         theme,
-        setTheme: (theme) => {
-          localStorage.setItem(storageKey, theme);
-          setTheme(theme);
-        },
+        setTheme,
+        isNightMode,
+        setIsNightMode,
       };
 
       return (

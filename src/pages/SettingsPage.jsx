@@ -4,20 +4,42 @@ import React from 'react';
     import { Switch } from '@/components/ui/switch';
     import { Label } from '@/components/ui/label';
     import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-    import { Bell, Palette, ShieldCheck, UploadCloud as CloudUpload, Headphones, Moon, Sun, LogIn, LogOut, UserCircle } from 'lucide-react';
+    import { Bell, Palette, ShieldCheck, UploadCloud as CloudUpload, Headphones, Moon, Sun, LogIn, LogOut, UserCircle, ZapOff } from 'lucide-react';
     import { useTheme } from '@/components/ThemeProvider';
     import { supabase } from '@/lib/supabaseClient';
     import { useToast } from '@/components/ui/use-toast';
 
+    const SettingsCard = ({ icon, title, description, children }) => (
+      <Card className="bg-card shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-medium text-foreground flex items-center">
+            {React.cloneElement(icon, { className: "mr-2.5 h-5 w-5 text-primary" })} {title}
+          </CardTitle>
+          {description && <CardDescription className="text-xs text-muted-foreground pt-1">{description}</CardDescription>}
+        </CardHeader>
+        <CardContent className="text-sm">
+          {children}
+        </CardContent>
+      </Card>
+    );
+    
+    const SettingsItem = ({ label, control, htmlFor }) => (
+       <div className="flex items-center justify-between py-2.5">
+        <Label htmlFor={htmlFor} className="text-foreground">
+          {label}
+        </Label>
+        {control}
+      </div>
+    );
+
+
     const SettingsPage = ({ session }) => {
-      const { theme, setTheme } = useTheme();
+      const { theme, setTheme, isNightMode, setIsNightMode } = useTheme();
       const { toast } = useToast();
 
       const handleLogin = async () => {
         try {
-          const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-          });
+          const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
           if (error) throw error;
         } catch (error) {
            toast({
@@ -45,135 +67,112 @@ import React from 'react';
         }
       };
 
+      const handleNightModeToggle = (checked) => {
+        setIsNightMode(checked);
+        if (checked && theme !== 'dark') {
+          setTheme('dark'); // Night mode implies dark theme
+          toast({ title: "Night Mode Enabled", description: "Switched to dark theme for optimal night viewing."});
+        } else if (!checked && theme === 'dark' && document.documentElement.classList.contains('night')) {
+          // If night mode is disabled, but theme was dark (due to night mode), revert to system or previous light.
+          // This logic might need refinement based on desired behavior. For now, just turn off 'night' class.
+          // The ThemeProvider will handle applying 'dark' or 'light' based on 'theme' state.
+        }
+      };
+
+
       return (
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-2xl mx-auto p-2 md:p-0"
+          className="max-w-xl mx-auto p-1 md:p-0"
         >
-          <h1 className="text-4xl font-bold mb-8 futuristic-gradient-text">Settings</h1>
+          <h1 className="text-3xl font-semibold mb-6 text-foreground">Settings</h1>
 
-          <div className="space-y-8">
-            <Card className="glassmorphism shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-2xl text-primary glowing-text flex items-center">
-                  <UserCircle className="mr-3 h-6 w-6" /> Account
-                </CardTitle>
-                <CardDescription className="text-slate-400">Manage your account and login status.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {session ? (
-                  <>
-                    <p className="text-slate-300">Logged in as: <span className="font-semibold text-primary">{session.user.email}</span></p>
-                    <Button onClick={handleLogout} variant="outline" className="w-full border-red-500 text-red-500 hover:bg-red-500/10 flex items-center space-x-2">
-                      <LogOut className="h-5 w-5" />
-                      <span>Log Out</span>
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-slate-300">You are not logged in. Log in to sync your data.</p>
-                    <Button onClick={handleLogin} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center space-x-2">
-                      <LogIn className="h-5 w-5" />
-                      <span>Log In with Google</span>
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+          <div className="space-y-6">
+            <SettingsCard icon={<UserCircle />} title="Account" description="Manage your account and login status.">
+              {session ? (
+                <div className="space-y-3">
+                  <p className="text-muted-foreground">Logged in as: <span className="font-medium text-foreground">{session.user.email}</span></p>
+                  <Button onClick={handleLogout} variant="outline" className="w-full border-destructive text-destructive hover:bg-destructive/10 flex items-center space-x-2">
+                    <LogOut className="h-4 w-4" />
+                    <span>Log Out</span>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-muted-foreground">You are not logged in. Log in to sync your data.</p>
+                  <Button onClick={handleLogin} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center space-x-2">
+                    <LogIn className="h-4 w-4" />
+                    <span>Log In with Google</span>
+                  </Button>
+                </div>
+              )}
+            </SettingsCard>
 
-
-            <Card className="glassmorphism shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-2xl text-primary glowing-text flex items-center">
-                  <Palette className="mr-3 h-6 w-6" /> Appearance
-                </CardTitle>
-                <CardDescription className="text-slate-400">Customize the look and feel of EchoVault.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="theme-toggle" className="text-lg text-slate-300">
-                    {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
-                  </Label>
+            <SettingsCard icon={<Palette />} title="Appearance" description="Customize the look and feel of EchoVault.">
+              <SettingsItem 
+                htmlFor="theme-toggle"
+                label={theme === 'system' ? 'System Theme' : (theme === 'dark' ? 'Dark Mode' : 'Light Mode')}
+                control={
                   <div className="flex items-center space-x-2">
-                    <Sun className={`h-5 w-5 ${theme === 'light' ? 'text-yellow-400' : 'text-slate-500'}`} />
+                    <Sun className={`h-4 w-4 ${theme === 'light' || (theme === 'system' && !window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'text-yellow-500' : 'text-muted-foreground'}`} />
                     <Switch
                       id="theme-toggle"
                       checked={theme === 'dark'}
-                      onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                      onCheckedChange={(checked) => {
+                        setTheme(checked ? 'dark' : 'light');
+                        if (!checked && isNightMode) setIsNightMode(false); // Turn off night mode if switching to light
+                      }}
                       aria-label="Toggle theme"
                     />
-                    <Moon className={`h-5 w-5 ${theme === 'dark' ? 'text-blue-400' : 'text-slate-500'}`} />
+                    <Moon className={`h-4 w-4 ${theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'text-blue-400' : 'text-muted-foreground'}`} />
                   </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="calm-bg-toggle" className="text-lg text-slate-300">Calming Background Sounds</Label>
-                  <Switch id="calm-bg-toggle" aria-label="Toggle calming background sounds" />
-                </div>
-                 <div className="flex items-center justify-between">
-                  <Label htmlFor="night-mode-toggle" className="text-lg text-slate-300">Nighttime Journaling Mode</Label>
-                  <Switch id="night-mode-toggle" aria-label="Toggle nighttime journaling mode" />
-                </div>
-              </CardContent>
-            </Card>
+                }
+              />
+              <SettingsItem 
+                htmlFor="night-mode-toggle"
+                label="Nighttime Journaling Mode"
+                control={<Switch 
+                            id="night-mode-toggle" 
+                            aria-label="Toggle nighttime journaling mode"
+                            checked={isNightMode}
+                            onCheckedChange={handleNightModeToggle}
+                         />}
+              />
+            </SettingsCard>
 
-            <Card className="glassmorphism shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-2xl text-primary glowing-text flex items-center">
-                  <ShieldCheck className="mr-3 h-6 w-6" /> Security & Privacy
-                </CardTitle>
-                <CardDescription className="text-slate-400">Manage your data and privacy settings.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-slate-300">Client-side encryption is planned for future updates to further protect your memories.</p>
-                <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" disabled>Export All Memories (Coming Soon)</Button>
-              </CardContent>
-            </Card>
+            <SettingsCard icon={<ShieldCheck />} title="Security & Privacy" description="Manage your data and privacy settings.">
+              <p className="text-muted-foreground pb-3">Client-side encryption is planned for future updates to further protect your memories.</p>
+              <Button variant="outline" className="w-full text-primary border-primary/50 hover:bg-primary/10" disabled>Export All Memories (Soon)</Button>
+            </SettingsCard>
             
-            <Card className="glassmorphism shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-2xl text-primary glowing-text flex items-center">
-                  <Bell className="mr-3 h-6 w-6" /> Notifications & Features
-                </CardTitle>
-                <CardDescription className="text-slate-400">Control how EchoVault interacts with you.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="ai-insights-toggle" className="text-lg text-slate-300">AI-Powered Insights</Label>
-                  <Switch id="ai-insights-toggle" defaultChecked aria-label="Toggle AI-powered insights" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="whisper-mode-toggle" className="text-lg text-slate-300 flex items-center">
-                    <Headphones className="mr-2 h-5 w-5" /> Whisper Mode
-                  </Label>
-                  <Switch id="whisper-mode-toggle" aria-label="Toggle whisper mode" />
-                </div>
-              </CardContent>
-            </Card>
+            <SettingsCard icon={<Bell />} title="Notifications & Features" description="Control how EchoVault interacts with you.">
+              <SettingsItem 
+                htmlFor="whisper-mode-toggle"
+                label={<span className="flex items-center"><Headphones className="mr-1.5 h-4 w-4" /> Whisper Mode</span>}
+                control={<Switch id="whisper-mode-toggle" aria-label="Toggle whisper mode" disabled />}
+              />
+               <div className="flex items-center justify-between py-2.5 text-muted-foreground">
+                <Label className="flex items-center"><ZapOff className="mr-1.5 h-4 w-4 text-muted-foreground" /> AI-Powered Insights</Label>
+                <span>Removed</span>
+              </div>
+            </SettingsCard>
 
-            <Card className="glassmorphism shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-2xl text-primary glowing-text flex items-center">
-                  <CloudUpload className="mr-3 h-6 w-6" /> Data Sync
-                </CardTitle>
-                <CardDescription className="text-slate-400">Your memories are synced with Supabase when logged in.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {session ? (
-                   <p className="text-sm text-green-400 text-center">Data sync is active. Your memories are being saved to the cloud.</p>
-                ) : (
-                  <Button 
-                    onClick={handleLogin} 
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
-                  >
-                    Connect to Cloud Sync (Log In)
-                  </Button>
-                )}
-                <p className="mt-2 text-xs text-slate-400 text-center">
-                  {session ? "You can access your memories from any device by logging in." : "Log in to enable cloud sync and protect your data."}
-                </p>
-              </CardContent>
-            </Card>
+            <SettingsCard icon={<CloudUpload />} title="Data Sync" description="Your memories are synced with Supabase when logged in.">
+              {session ? (
+                 <p className="text-sm text-green-500 text-center py-2">Data sync is active. Your memories are being saved to the cloud.</p>
+              ) : (
+                <Button 
+                  onClick={handleLogin} 
+                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                >
+                  Connect to Cloud Sync (Log In)
+                </Button>
+              )}
+              <p className="mt-1.5 text-xs text-muted-foreground text-center">
+                {session ? "You can access your memories from any device by logging in." : "Log in to enable cloud sync and protect your data."}
+              </p>
+            </SettingsCard>
           </div>
         </motion.div>
       );
