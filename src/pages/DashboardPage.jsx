@@ -116,51 +116,6 @@ import React, { useState, useEffect } from 'react';
         }
       };
 
-      const AiSuggestion = ({ entries = [], onRevisit }) => {
-  const keyword = "project ideas";
-  const now = new Date();
-  const thisMonthEntries = entries.filter(entry => {
-    const entryDate = new Date(entry.date);
-    return (
-      entryDate.getMonth() === now.getMonth() &&
-      entryDate.getFullYear() === now.getFullYear()
-    );
-  });
-  const mentionCount = thisMonthEntries.reduce((count, entry) => {
-    const content = entry.content.toLowerCase();
-    return count + (content.includes(keyword) ? 1 : 0);
-  }, 0);
-
-  if (mentionCount === 0) return null;
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.5 }}
-      className="mb-6 p-4 border border-primary/50 rounded-lg glassmorphism shadow-lg"
-    >
-      <div className="flex items-center space-x-3">
-        <AlertCircle className="h-8 w-8 text-primary" />
-        <div>
-          <h3 className="text-lg font-semibold text-primary glowing-text">AI Insight</h3>
-          <p className="text-sm text-slate-300">
-            You mentioned <strong>{`"${keyword}"`}</strong> {mentionCount} {mentionCount === 1 ? 'time' : 'times'} this month. Want to explore them?
-          </p>
-        </div>
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        className="mt-3 border-primary text-primary hover:bg-primary/10"
-        onClick={onRevisit}
-      >
-        Revisit Ideas
-      </Button>
-    </motion.div>
-  );
-};
-
       if (loading) {
         return <div className="flex justify-center items-center h-full"><p className="text-xl text-primary">Loading your memories...</p></div>;
       }
