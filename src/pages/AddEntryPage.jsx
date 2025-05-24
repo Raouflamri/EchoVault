@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
     import { useNavigate } from 'react-router-dom';
     import { motion } from 'framer-motion';
     import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
     import { Label } from '@/components/ui/label';
     import { useToast } from '@/components/ui/use-toast';
     import { Badge } from '@/components/ui/badge';
-    import { X, Mic, Save, Tag, LogIn, Square, Play } from 'lucide-react';
+    import { X, Mic, Save, Tag, LogIn } from 'lucide-react';
     import { supabase } from '@/lib/supabaseClient';
 
     const AddEntryPage = () => {
@@ -18,12 +18,6 @@ import React, { useState, useEffect, useRef } from 'react';
       const [loading, setLoading] = useState(true);
       const navigate = useNavigate();
       const { toast } = useToast();
-
-      const [isRecording, setIsRecording] = useState(false);
-      const [audioURL, setAudioURL] = useState('');
-      const [audioBlob, setAudioBlob] = useState(null);
-      const mediaRecorderRef = useRef(null);
-      const audioChunksRef = useRef([]);
 
       useEffect(() => {
         const checkUser = async () => {
@@ -43,57 +37,9 @@ import React, { useState, useEffect, useRef } from 'react';
         };
       }, []);
 
-      const handleStartRecording = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorderRef.current = new MediaRecorder(stream);
-          audioChunksRef.current = [];
-
-          mediaRecorderRef.current.ondataavailable = (event) => {
-            audioChunksRef.current.push(event.data);
-          };
-
-          mediaRecorderRef.current.onstop = () => {
-            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-            setAudioBlob(audioBlob);
-            const audioUrl = URL.createObjectURL(audioBlob);
-            setAudioURL(audioUrl);
-            // For now, let's add a placeholder to content if user recorded audio
-            if (!content.trim()) {
-              setContent(prev => prev + (prev ? '\n' : '') + '[Audio Recording Attached]');
-            }
-          };
-
-          mediaRecorderRef.current.start();
-          setIsRecording(true);
-          toast({ title: "Recording Started", description: "Speak your thoughts." });
-        } catch (err) {
-          console.error("Error accessing microphone:", err);
-          toast({ title: "Microphone Error", description: "Could not access microphone. Please check permissions.", variant: "destructive" });
-        }
-      };
-
-      const handleStopRecording = () => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-          mediaRecorderRef.current.stop();
-          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop()); // Stop microphone access
-        }
-        setIsRecording(false);
-        toast({ title: "Recording Stopped", description: "Audio captured." });
-      };
-      
-      const handleToggleRecording = () => {
-        if (isRecording) {
-          handleStopRecording();
-        } else {
-          handleStartRecording();
-        }
-      };
-
-
       const handleAddTag = () => {
-        if (currentTag.trim() && !tags.includes(currentTag.trim().toLowerCase())) {
-          setTags([...tags, currentTag.trim().toLowerCase()]);
+        if (currentTag && !tags.includes(currentTag.trim())) {
+          setTags([...tags, currentTag.trim()]);
           setCurrentTag('');
         }
       };
@@ -113,35 +59,20 @@ import React, { useState, useEffect, useRef } from 'react';
           return;
         }
 
-        if (!content.trim() && !audioBlob) {
+        if (!content.trim()) {
           toast({
-            title: "Content Required",
-            description: "Your memory entry cannot be empty and no audio recorded.",
+            title: "Uh oh!",
+            description: "Content cannot be empty.",
             variant: "destructive",
           });
           return;
         }
-        
-        let audioFileName = null;
-        if (audioBlob) {
-          // In a real app, you'd upload the audioBlob to Supabase Storage
-          // For now, we'll just note its presence.
-          // Example: audioFileName = `audio_${user.id}_${Date.now()}.webm`;
-          // const { data: uploadData, error: uploadError } = await supabase.storage
-          //   .from('audio_entries')
-          //   .upload(audioFileName, audioBlob);
-          // if (uploadError) { ... handle error ... }
-          console.log("Audio blob ready for upload (not implemented in this step):", audioBlob);
-          toast({ title: "Audio Ready", description: "Audio recording is ready (upload not implemented yet)." });
-        }
-
 
         const newEntry = {
           user_id: user.id,
           date: new Date().toISOString(),
           content: content.trim(),
           tags: tags,
-          // audio_file: audioFileName, // Store the path to the audio file in Supabase Storage
         };
 
         const { error } = await supabase.from('entries').insert([newEntry]);
@@ -157,17 +88,15 @@ import React, { useState, useEffect, useRef } from 'react';
             title: "Memory Saved!",
             description: "Your new entry has been securely stored in the vault.",
           });
-          setContent('');
-          setTags([]);
-          setAudioURL('');
-          setAudioBlob(null);
           navigate('/');
         }
       };
       
       const handleLogin = async () => {
         try {
-          const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+          });
           if (error) throw error;
         } catch (error) {
           toast({
@@ -179,45 +108,56 @@ import React, { useState, useEffect, useRef } from 'react';
       };
 
       if (loading) {
-        return <div className="flex justify-center items-center h-64"><p className="text-lg text-primary">Loading...</p></div>;
+        return <div className="flex justify-center items-center h-full"><p className="text-xl text-primary">Loading...</p></div>;
       }
 
       if (!user) {
-        return <AuthNeeded onLogin={handleLogin} />;
+        return (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="glassmorphism p-8 rounded-lg shadow-xl max-w-md"
+            >
+              <LogIn className="h-16 w-16 text-primary mx-auto mb-6" />
+              <h1 className="text-3xl font-bold mb-4 futuristic-gradient-text">Secure Your Thoughts</h1>
+              <p className="text-slate-300 mb-8">
+                Log in to add new memories to your EchoVault. Your data will be saved securely.
+              </p>
+              <Button onClick={handleLogin} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-3">
+                Log In with Google
+              </Button>
+              <p className="text-xs text-slate-500 mt-4">Ensure you're logged in to keep your memories safe.</p>
+            </motion.div>
+          </div>
+        );
       }
+
 
       return (
         <motion.div 
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-xl mx-auto p-1 md:p-0"
+          className="max-w-2xl mx-auto p-2 md:p-0"
         >
-          <h1 className="text-3xl font-semibold mb-6 text-foreground">Capture a New Memory</h1>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-1.5">
-              <Label htmlFor="content" className="text-sm font-medium text-foreground">Your Thoughts, Ideas, or Dreams</Label>
+          <h1 className="text-4xl font-bold mb-8 futuristic-gradient-text">Capture a New Memory</h1>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="space-y-2">
+              <Label htmlFor="content" className="text-lg text-slate-300">Your Thoughts, Ideas, or Dreams</Label>
               <Textarea
                 id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="What's on your mind? Speak or type freely..."
-                rows={8}
-                className="bg-card border-border focus:ring-primary focus:border-primary text-foreground text-sm p-3 rounded-md shadow-sm"
+                rows={10}
+                className="bg-slate-800/50 border-slate-700 focus:ring-primary focus:border-primary text-slate-100 text-base p-4 rounded-lg shadow-inner"
               />
             </div>
 
-            {audioURL && (
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-foreground">Recorded Audio</Label>
-                <audio src={audioURL} controls className="w-full" />
-                <Button variant="link" size="sm" onClick={() => { setAudioURL(''); setAudioBlob(null); setContent(content.replace('[Audio Recording Attached]', '').trim())}} className="text-destructive p-0 h-auto">Remove Audio</Button>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <Label htmlFor="tags" className="text-sm font-medium text-foreground">Tags (Emotions, Topics, Keywords)</Label>
+            <div className="space-y-2">
+              <Label htmlFor="tags" className="text-lg text-slate-300">Tags (Emotions, Topics, Keywords)</Label>
               <div className="flex items-center space-x-2">
-                <Tag className="h-4 w-4 text-muted-foreground" />
+                <Tag className="h-5 w-5 text-slate-400" />
                 <Input
                   id="tags"
                   type="text"
@@ -225,17 +165,17 @@ import React, { useState, useEffect, useRef } from 'react';
                   onChange={(e) => setCurrentTag(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); handleAddTag(); }}}
                   placeholder="Add a tag and press Enter or comma"
-                  className="h-9 bg-card border-border focus:ring-primary focus:border-primary text-foreground text-sm"
+                  className="bg-slate-800/50 border-slate-700 focus:ring-primary focus:border-primary text-slate-100"
                 />
-                <Button type="button" onClick={handleAddTag} variant="outline" size="sm" className="text-primary border-primary/50 hover:bg-primary/10">Add Tag</Button>
+                <Button type="button" onClick={handleAddTag} variant="outline" className="border-primary text-primary hover:bg-primary/10">Add Tag</Button>
               </div>
               {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-2">
+                <div className="flex flex-wrap gap-2 mt-3">
                   {tags.map(tag => (
-                    <Badge key={tag} variant="secondary" className="bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs py-1 px-2.5">
+                    <Badge key={tag} variant="secondary" className="bg-primary/20 text-primary border-primary/30 text-sm py-1 px-3">
                       {tag}
-                      <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-1.5 hover:text-destructive">
-                        <X className="h-2.5 w-2.5" />
+                      <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-2 hover:text-red-400">
+                        <X className="h-3 w-3" />
                       </button>
                     </Badge>
                   ))}
@@ -243,18 +183,13 @@ import React, { useState, useEffect, useRef } from 'react';
               )}
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0 sm:space-x-3 pt-3">
-               <Button 
-                type="button" 
-                variant={isRecording ? "destructive" : "outline"} 
-                onClick={handleToggleRecording}
-                className="w-full sm:w-auto flex items-center justify-center space-x-2"
-              >
-                {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                <span>{isRecording ? 'Stop Recording' : 'Record Voice'}</span>
+            <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4 pt-4">
+              <Button type="button" variant="outline" className="w-full sm:w-auto border-primary text-primary hover:bg-primary/10 flex items-center justify-center space-x-2">
+                <Mic className="h-5 w-5" />
+                <span>Record Voice (Soon)</span>
               </Button>
               <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center space-x-2">
-                <Save className="h-4 w-4" />
+                <Save className="h-5 w-5" />
                 <span>Save to Vault</span>
               </Button>
             </div>
