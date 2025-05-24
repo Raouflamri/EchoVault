@@ -116,24 +116,56 @@ import React, { useState, useEffect } from 'react';
         }
       };
 
+      const AiSuggestion = () => {
+  const currentMonth = new Date().getMonth();
+  const keywordCounts = {};
 
-      const AiSuggestion = () => (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mb-6 p-4 border border-primary/50 rounded-lg glassmorphism shadow-lg"
-        >
-          <div className="flex items-center space-x-3">
-            <AlertCircle className="h-8 w-8 text-primary" />
-            <div>
-              <h3 className="text-lg font-semibold text-primary glowing-text">AI Insight</h3>
-              <p className="text-sm text-slate-300">You mentioned "project ideas" 3 times this month. Want to explore them?</p>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" className="mt-3 border-primary text-primary hover:bg-primary/10">Revisit Ideas</Button>
-        </motion.div>
-      );
+  entries.forEach(entry => {
+    const entryDate = new Date(entry.date);
+    if (entryDate.getMonth() === currentMonth) {
+      const words = entry.content
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .split(/\s+/);
+
+      words.forEach(word => {
+        if (word.length > 3) {
+          keywordCounts[word] = (keywordCounts[word] || 0) + 1;
+        }
+      });
+    }
+  });
+
+  const sortedKeywords = Object.entries(keywordCounts)
+    .sort((a, b) => b[1] - a[1])
+    .filter(([_, count]) => count > 1);
+
+  const topKeyword = sortedKeywords.length > 0 ? sortedKeywords[0] : null;
+
+  if (!topKeyword) return null; // Show nothing if no insight
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5 }}
+      className="mb-6 p-4 border border-primary/50 rounded-lg glassmorphism shadow-lg"
+    >
+      <div className="flex items-center space-x-3">
+        <AlertCircle className="h-8 w-8 text-primary" />
+        <div>
+          <h3 className="text-lg font-semibold text-primary glowing-text">AI Insight</h3>
+          <p className="text-sm text-slate-300">
+            You mentioned "<strong>{topKeyword[0]}</strong>" {topKeyword[1]} times this month. Want to explore it?
+          </p>
+        </div>
+      </div>
+      <Button variant="outline" size="sm" className="mt-3 border-primary text-primary hover:bg-primary/10">
+        Revisit "{topKeyword[0]}"
+      </Button>
+    </motion.div>
+  );
+};
 
       if (loading) {
         return <div className="flex justify-center items-center h-full"><p className="text-xl text-primary">Loading your memories...</p></div>;
